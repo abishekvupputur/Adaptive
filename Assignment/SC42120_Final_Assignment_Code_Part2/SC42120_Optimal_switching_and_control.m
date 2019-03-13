@@ -9,7 +9,7 @@
 %%% Copyright 2013 by Ali Heydari (heydari.ali@gmail.com)
 %%% Author Webpage: http://webpages.sdsmt.edu/~aheydari/
 %%%
-%%% Refer to the paper and the notations used therein for understanding this code
+%%% Refer to the paper the notations used therein for understanding this code
 %%%
 %%% Author of the Code: 
 %%% Vittorio Giammarino
