@@ -1,0 +1,18 @@
+0. git clone <LINK>     - Downloads the repository
+
+***************************************************************************************
+
+1. git status           -See changes you made since last update
+
+2. git add (Pressing tab usually helps you type the file name you saw in git status) 
+
+3. git commit -m "TYPE MESSAGE" -Make your changes and tag with a message
+
+4. git push origin master       -Uploads to parent.
+
+5. git pull origin master 	- Downloads the file from repository
+
+
+********* Repeat 1,2,3,4,5 everytime............................         
+
+6. gitk 			-gives a gui where changes can be tracked.
