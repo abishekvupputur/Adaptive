@@ -36,3 +36,18 @@ D1 = [eye(3)*M1 zeros(3); zeros(3) I1];
 D2 = [eye(3)*M2 zeros(3); zeros(3) I2];
 D3 = [eye(3)*M3 zeros(3); zeros(3) I3];
 D4 = [eye(3)*M4 zeros(3); zeros(3) I4];
+
+%% Simulate and plot
+sim(UAV_sync_known)
+figure('NumberTitle', 'off', 'Name', 'Position of UAV')
+    hold on
+    plot(Xdata.signals(1).values(:,1),Xdata.signals(1).values(:,2))
+    plot(Xdata.signals(2).values(:,1),Xdata.signals(2).values(:,2))
+    plot(Xdata.signals(3).values(:,1),Xdata.signals(3).values(:,2))
+    plot(Xdata.signals(4).values(:,1),Xdata.signals(4).values(:,2))
+    plot(Xdata.signals(5).values(:,1),Xdata.signals(5).values(:,2))
+    title('Simulation of UAVs')
+    xlabel('x [m]');
+    ylabel('y [m]');
+    legend('UAV 1', 'UAV 2', 'UAV 3', 'UAV 4', 'Reference')
+    grid on
