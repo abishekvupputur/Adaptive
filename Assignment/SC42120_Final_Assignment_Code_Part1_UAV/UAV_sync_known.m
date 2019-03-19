@@ -38,7 +38,7 @@ D3 = [eye(3)*M3 zeros(3); zeros(3) I3];
 D4 = [eye(3)*M4 zeros(3); zeros(3) I4];
 
 %% Simulate and plot
-sim(UAV_sync_known)
+sim('UAV_sync_known')
 figure('NumberTitle', 'off', 'Name', 'Position of UAV')
     hold on
     plot(Xdata.signals(1).values(:,1),Xdata.signals(1).values(:,2))

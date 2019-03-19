@@ -31,10 +31,16 @@ init_vel4 = [10 0 0];
 init_ang4 = [0 0 0];
 I4 = [0.8 0 -0.08;0 0.4 0;-0.08 0 0.8];
 
-%% Construct 
+%% Construct Am, P, Bm
+
+Am = [zeros(6) eye(6); -Kp -Kv];
+Bm = [zeros(6); eye(6)];
+P = lyap(Am',eye(12));
+S1 = eye(6)*1;
+S2 = eye(6)*1;
 
 %% Simulate and plot
-sim(UAV_sync_known)
+sim('UAV_sync_unknown')
 figure('NumberTitle', 'off', 'Name', 'Position of UAV')
     hold on
     plot(Xdata.signals(1).values(:,1),Xdata.signals(1).values(:,2))
