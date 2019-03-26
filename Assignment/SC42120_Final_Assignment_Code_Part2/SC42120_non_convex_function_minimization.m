@@ -22,7 +22,7 @@ clc; clear;
 c = 100;
 psi = @(x) c*[2.1333*x^4 + 0.9333*x^3 - 2.1333*x^2 - 0.9333*x + 1]; % A non-convex psi to optimze
 
-dt = 1e-4; %Sampling time of the discreet system
+dt = 1e-4; %Sampling time of the discrete system
 tf =  1; %The simulation will be performed from t=0 to this value
 N = tf/dt; %Number of steps during each simulation 
 
@@ -35,7 +35,7 @@ R = 1;
 
 n = 1; m = 1; %system order and number of inputs
 
-X_k =  (rand(n,1)*2-1); %Initial states selection
+X_k = (rand(n,1)*2-1); %Initial states selection
 
 % Basis functions
 phi = @(x) [1 x x^2 x^3 x^4 x^5 x^6 x^7]';
@@ -80,7 +80,7 @@ for t = 0:N-1
         end 
         if k == N % Step 2
             for i=1:NoOfEquations
-                X_k =  (rand(1,1)*2-1) * StateSelectionWidth; %Initial states selection
+                X_k = (rand(1,1)*2-1) * StateSelectionWidth; %Initial states selection
                 J_k_t = psi(X_k);
                 RHS_J(i,:) = J_k_t;
                 LHS_J(i,:) = phi(X_k)';
@@ -91,20 +91,20 @@ for t = 0:N-1
                 fprintf('det phi = 0\n');
                 break;
             end
-            FinalW(:,k) = %TODO
+            FinalW(:,k) = (LHS_J'*LHS_J)\LHS_J'*RHS_J;
         else % Step 3
             for i=1:NoOfEquations % Step 4
                 U_k = 0;
                 % Step 5
-                X_k =  (rand(1,1)*2-1) * StateSelectionWidth; %Initial states selection
+                X_k = (rand(1,1)*2-1) * StateSelectionWidth; %Initial states selection
                 
                 % Steps 6 and 7 of Algorithm 1 (conducting a fixed number
                 % of iterations instead of using a convergence tolerance
                 % beta
                 % like in the paper)
                 for j = 1:MaxEpochNo-1 
-                    X_k_plus_1 = %TODO
-                    U_k = %TODO
+                    X_k_plus_1 = X_k+f_bar(X_k)+g_bar*U_k;
+                    U_k = -.5*R_bar\g_bar*dphi_dx(X_k_plus_1)'*FinalW(:,k+1);
                 end
                 RHS_U(i,:) = U_k';
                 LHS_U(i,:) = sigma(X_k)';
@@ -114,7 +114,7 @@ for t = 0:N-1
                 break;
             end
             % Step 8
-            FinalV(:,k) = %TODO
+            FinalV(:,k) = (LHS_U'*LHS_U)\LHS_U'*RHS_U;
 
             if det(LHS_J'*LHS_J)==0
                 fprintf('det phi = 0\n');
@@ -122,13 +122,13 @@ for t = 0:N-1
             end
             % Step 9
             % Generate target for updating W
-            X_k_plus_1 = %TODO
-            J_k_plus_1 = %TODO
-            J_k_t = %TODO
+            X_k_plus_1 = X_k+f_bar(X_k)+g_bar*U_k;
+            J_k_plus_1 = FinalW(:,k+1)'*phi(X_k_plus_1);
+            J_k_t = Q_bar(X_k)+U_k*R_bar*U_k+J_k_plus_1;
             RHS_J(i,:) = J_k_t;
             LHS_J(i,:) = phi(X_k)';
             
-            FinalW(:,k) = %TODO
+            FinalW(:,k) = (LHS_J'*LHS_J)\LHS_J'*RHS_J;
         end
 
         if isnan(FinalW(:,k))
@@ -148,5 +148,26 @@ toc
 
 %% Plot Results
 
-x=-StateSelectionWidth:dt:StateSelectionWidth;
+x = -StateSelectionWidth:dt:StateSelectionWidth;
+function_value = zeros(length(x),1);
+cost_function_value = zeros(length(x),1);
+for i=1:length(x)
+    function_value(i) = psi(x(i));
+    cost_function_value(i) = FinalW(:,1)'*phi(x(i));
+end
 
+figure('NumberTitle', 'off', 'Name', 'Non-linear function')
+    hold on
+    plot(x,function_value)
+    title('Non-linear function to optimise');
+    xlabel('x');
+    ylabel('\psi(x)');
+    legend('\psi');
+
+figure('NumberTitle', 'off', 'Name', 'Cost function')
+    hold on
+    plot(x,cost_function_value)
+    title('Cost function approximation');
+    xlabel('x');
+    ylabel('L_0(x)');
+    legend('L_0');
