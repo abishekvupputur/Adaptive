@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Single Variable Non-convex Function Minimization
 %%% 
-%%% Source code for paper: Global optimality of approximate dynamic programming and its usein non-convex function minimization
+%%% Source code for paper: Global optimality of approximate dynamic programming and its use in non-convex function minimization
 %%% Authors: Ali Heydari and S.N. Balakrishnan
 %%% Journal: Applied Soft Computing, Vol. 24, 2014, pp. 291�303
 %%% 
@@ -35,7 +35,7 @@ R = 1;
 
 n = 1; m = 1; %system order and number of inputs
 
-X_k = (rand(n,1)*2-1); %Initial states selection
+X_k =  (rand(n,1)*2-1); %Initial states selection
 
 % Basis functions
 phi = @(x) [1 x x^2 x^3 x^4 x^5 x^6 x^7]';
@@ -48,13 +48,13 @@ FinalV = zeros(length(sigma(X_k)),N); %Scalar control, for now
 
 %% NN Training
 
-MaxEpochNo= 3; % Unlike Algorithm 1 of the paper, where "beta" was defined for evaluating the convergence of "Step 6", we're setting a fixed number of iterations for that successive approximation
+MaxEpochNo = 3; % Unlike Algorithm 1 of the paper, where "beta" was defined for evaluating the convergence of "Step 6", we're setting a fixed number of iterations for that successive approximation
 NoOfEquations = 100; % Number of sample "x" selected for training using least squares
 StateSelectionWidth = 2; % the states will be selected from interval (-StateSelectionWidth, StateSelectionWidth)
 
 f_bar = @(x) dt*f(x); % Discretized R
 g_bar = dt*g; % Discretized g
-Q_bar =@(x) dt*Q(x); %Discretized Q
+Q_bar = @(x) dt*Q(x); %Discretized Q
 R_bar = dt*R; % Discretized R
 
 tic
@@ -80,7 +80,7 @@ for t = 0:N-1
         end 
         if k == N % Step 2
             for i=1:NoOfEquations
-                X_k = (rand(1,1)*2-1) * StateSelectionWidth; %Initial states selection
+                X_k =  (rand(1,1)*2-1) * StateSelectionWidth; %Initial states selection
                 J_k_t = psi(X_k);
                 RHS_J(i,:) = J_k_t;
                 LHS_J(i,:) = phi(X_k)';
@@ -96,7 +96,7 @@ for t = 0:N-1
             for i=1:NoOfEquations % Step 4
                 U_k = 0;
                 % Step 5
-                X_k = (rand(1,1)*2-1) * StateSelectionWidth; %Initial states selection
+                X_k =  (rand(1,1)*2-1) * StateSelectionWidth; %Initial states selection
                 
                 % Steps 6 and 7 of Algorithm 1 (conducting a fixed number
                 % of iterations instead of using a convergence tolerance
@@ -108,6 +108,12 @@ for t = 0:N-1
                 end
                 RHS_U(i,:) = U_k';
                 LHS_U(i,:) = sigma(X_k)';
+                % Generate target for updating W
+                X_k_plus_1 = X_k+f_bar(X_k)+g_bar*U_k;
+                J_k_plus_1 = FinalW(:,k+1)'*phi(X_k_plus_1);
+                J_k_t = Q_bar(X_k)+U_k*R_bar*U_k+J_k_plus_1;
+                RHS_J(i,:) = J_k_t;
+                LHS_J(i,:) = phi(X_k)';
             end
             if det(LHS_U'*LHS_U)==0
                 fprintf('det sigma = 0\n');
@@ -120,14 +126,7 @@ for t = 0:N-1
                 fprintf('det phi = 0\n');
                 break;
             end
-            % Step 9
-            % Generate target for updating W
-            X_k_plus_1 = X_k+f_bar(X_k)+g_bar*U_k;
-            J_k_plus_1 = FinalW(:,k+1)'*phi(X_k_plus_1);
-            J_k_t = Q_bar(X_k)+U_k*R_bar*U_k+J_k_plus_1;
-            RHS_J(i,:) = J_k_t;
-            LHS_J(i,:) = phi(X_k)';
-            
+            % Step 9   
             FinalW(:,k) = (LHS_J'*LHS_J)\LHS_J'*RHS_J;
         end
 
@@ -148,7 +147,9 @@ toc
 
 %% Plot Results
 
-x = -StateSelectionWidth:dt:StateSelectionWidth;
+x=-StateSelectionWidth:dt:StateSelectionWidth;
+
+% Compute values for function and cost function
 function_value = zeros(length(x),1);
 cost_function_value = zeros(length(x),1);
 for i=1:length(x)
@@ -156,6 +157,7 @@ for i=1:length(x)
     cost_function_value(i) = FinalW(:,1)'*phi(x(i));
 end
 
+% Plot
 figure('NumberTitle', 'off', 'Name', 'Non-linear function')
     hold on
     plot(x,function_value)
