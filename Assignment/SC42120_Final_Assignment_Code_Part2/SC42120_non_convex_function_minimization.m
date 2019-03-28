@@ -35,7 +35,7 @@ R = 1;
 
 n = 1; m = 1; %system order and number of inputs
 
-X_k =  (rand(n,1)*2-1); %Initial states selection
+X_k = (rand(n,1)*2-1); %Initial states selection
 
 % Basis functions
 phi = @(x) [1 x x^2 x^3 x^4 x^5 x^6 x^7]';
@@ -80,7 +80,7 @@ for t = 0:N-1
         end 
         if k == N % Step 2
             for i=1:NoOfEquations
-                X_k =  (rand(1,1)*2-1) * StateSelectionWidth; %Initial states selection
+                X_k = (rand(1,1)*2-1) * StateSelectionWidth; %Initial states selection
                 J_k_t = psi(X_k);
                 RHS_J(i,:) = J_k_t;
                 LHS_J(i,:) = phi(X_k)';
@@ -96,7 +96,7 @@ for t = 0:N-1
             for i=1:NoOfEquations % Step 4
                 U_k = 0;
                 % Step 5
-                X_k =  (rand(1,1)*2-1) * StateSelectionWidth; %Initial states selection
+                X_k = (rand(1,1)*2-1) * StateSelectionWidth; %Initial states selection
                 
                 % Steps 6 and 7 of Algorithm 1 (conducting a fixed number
                 % of iterations instead of using a convergence tolerance
@@ -104,7 +104,7 @@ for t = 0:N-1
                 % like in the paper)
                 for j = 1:MaxEpochNo-1 
                     X_k_plus_1 = X_k+f_bar(X_k)+g_bar*U_k;
-                    U_k = -.5*R_bar\g_bar*dphi_dx(X_k_plus_1)'*FinalW(:,k+1);
+                    U_k = -1/2*(R_bar\g_bar)*dphi_dx(X_k_plus_1)'*FinalW(:,k+1);
                 end
                 RHS_U(i,:) = U_k';
                 LHS_U(i,:) = sigma(X_k)';
