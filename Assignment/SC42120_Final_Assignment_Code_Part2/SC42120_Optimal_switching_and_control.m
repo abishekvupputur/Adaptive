@@ -53,7 +53,7 @@ t_bar_f = tf;
 K = s-1;
 N = (K+1)/dt;   %Number of steps during each simulation 
 
-X_k  =  (rand(n,1)*2-1); %Initial states selection
+X_k = (rand(n,1)*2-1); %Initial states selection
 t_switch = (tf*rand(s-1,1));
 
 % Basis functions
@@ -108,14 +108,14 @@ MaxEpochNo = 10; % Unlike Algorithm 1 of the paper, where "beta" was defined for
 NoOfEquations = 500; % Number of sample "x" selected for training using least squares, in the referenced paper this value is called "n"
 StateSelectionWidth = 1.25; % the states will be selected from interval (-StateSelectionWidth, StateSelectionWidth)
 
-Q1_bar = dt*Q(1,1); % Discretized Q1
-Q2_bar = dt*Q(2,2); % Discretized Q2
-R1_bar = dt*R; % Discretized R1
-R2_bar = dt*R; % Discretized R2
-f_1_bar = @(x_1, x_2) [x_1;x_2] + dt*f_1(x_1, x_2); % Discretized f_1
-f_2_bar = @(x_1, x_2) [x_1;x_2] + dt*f_2(x_1, x_2); % Discretized f_2
-g_1_bar = dt*g_1; % Discretized g_1
-g_2_bar = dt*g_2; % Discretized g_2
+Q1_bar = @(x, t_switch) dt*t_switch*(x'*Q*x); % Discretized Q1
+Q2_bar = @(x, t_switch) dt*(tf-t_switch)*(x'*Q*x); % Discretized Q2
+R1_bar = @(t_switch) dt*t_switch*R; % Discretized R1
+R2_bar = @(t_switch) dt*(tf-t_switch)*R; % Discretized R2
+f_1_bar = @(x_1, x_2, t_switch) [x_1;x_2] + dt*t_switch*f_1(x_1, x_2); % Discretized f_1
+f_2_bar = @(x_1, x_2, t_switch) [x_1;x_2] + dt*(tf-t_switch)*f_2(x_1, x_2); % Discretized f_2
+g_1_bar = @(t_switch) dt*t_switch*g_1; % Discretized g_1
+g_2_bar = @(t_switch) dt*(tf-t_switch)*g_2; % Discretized g_2
 
 tic
 W = zeros(length(phi(X_k(1), X_k(2), t_switch)),N,MaxEpochNo);
@@ -143,7 +143,7 @@ for t = 0:N-1 % time goes from 0 to tf ----> N number of sample
         end 
         if k == N % Step 1: least square to initialize the final critic weight W
             for j=1:NoOfEquations                
-                X_k =  (rand(n,1)*2-1)* StateSelectionWidth; %Initial states selection
+                X_k = (rand(n,1)*2-1)* StateSelectionWidth; %Initial states selection
                 t_switch = (tf*rand(s-1,1));
                 
                 J_k_t = psi(X_k);
@@ -164,17 +164,17 @@ for t = 0:N-1 % time goes from 0 to tf ----> N number of sample
             for i=1:MaxEpochNo-1
                 for j = 1:NoOfEquations 
                     % Step 4
-                    X_k =  (rand(n,1)*2-1)* StateSelectionWidth; %Initial states selection
+                    X_k = (rand(n,1)*2-1)* StateSelectionWidth; %Initial states selection
                     t_switch = (tf*rand(s-1,1)); %Initial states selection
                     % Step 5
                     temp_U_k = Vi_1(:,k,i)'*sigma(X_k(1), X_k(2), t_switch);
                     % Step 6
                     if k*dt < t_bar 
-                        X_k_plus_1 = f_1_bar(X_k(1),X_k(2))+g_1_bar*temp_U_k;
-                        U_k = -inv(R1_bar)*g_1_bar'*dphi_dx(X_k_plus_1(1), X_k_plus_1(2), t_switch)'*FinalW(:,k+1);
+                        X_k_plus_1 = f_1_bar(X_k(1),X_k(2),t_switch)+g_1_bar(t_switch)*temp_U_k;
+                        U_k = -inv(R1_bar(t_switch))*g_1_bar(t_switch)'*dphi_dx(X_k_plus_1(1), X_k_plus_1(2), t_switch)'*FinalW(:,k+1);
                     else
-                        X_k_plus_1 = f_2_bar(X_k(1),X_k(2))+g_2_bar*temp_U_k;
-                        U_k = -inv(R2_bar)*g_2_bar'*dphi_dx(X_k_plus_1(1), X_k_plus_1(2), t_switch)'*FinalW(:,k+1);
+                        X_k_plus_1 = f_2_bar(X_k(1),X_k(2),t_switch)+g_2_bar(t_switch)*temp_U_k;
+                        U_k = -inv(R2_bar(t_switch))*g_2_bar(t_switch)'*dphi_dx(X_k_plus_1(1), X_k_plus_1(2), t_switch)'*FinalW(:,k+1);
                     end
                     RHS_U(j,:) = U_k';
                     LHS_U(j,:) = sigma(X_k(1), X_k(2), t_switch)';
@@ -201,17 +201,17 @@ for t = 0:N-1 % time goes from 0 to tf ----> N number of sample
              
             % Step 10
             for j= 1:NoOfEquations
-                X_k =  (rand(n,1)*2-1)* StateSelectionWidth; %Initial states selection
+                X_k = (rand(n,1)*2-1)* StateSelectionWidth; %Initial states selection
                 t_switch = (tf*rand(s-1,1)); %Initial states selection
                 temp_U_k = FinalV(:,k)'*sigma(X_k(1), X_k(2), t_switch);
                 if k*dt < t_bar 
-                   X_k_plus_1 = f_1_bar(X_k(1),X_k(2))+g_1_bar*temp_U_k;
+                   X_k_plus_1 = f_1_bar(X_k(1),X_k(2),t_switch)+g_1_bar(t_switch)*temp_U_k;
                    J_k_plus_1 = FinalW(:,k+1)'*phi(X_k_plus_1(1), X_k_plus_1(2), t_switch);
-                   J_k_t = 1/2*Q1_bar+1/2*temp_U_k'*R1_bar*temp_U_k+J_k_plus_1;
+                   J_k_t = 1/2*Q1_bar(X_k,t_switch)+1/2*temp_U_k'*R1_bar(t_switch)*temp_U_k+J_k_plus_1;
                 else
-                   X_k_plus_1 = f_2_bar(X_k(1),X_k(2))+g_2_bar*temp_U_k;
+                   X_k_plus_1 = f_2_bar(X_k(1),X_k(2),t_switch)+g_2_bar(t_switch)*temp_U_k;
                    J_k_plus_1 = FinalW(:,k+1)'*phi(X_k_plus_1(1), X_k_plus_1(2), t_switch);
-                   J_k_t = 1/2*Q2_bar+1/2*temp_U_k'*R2_bar*temp_U_k+J_k_plus_1;
+                   J_k_t = 1/2*Q2_bar(X_k,t_switch)+1/2*temp_U_k'*R2_bar(t_switch)*temp_U_k+J_k_plus_1;
                 end
                 RHS_J(j,:) = J_k_t;
                 LHS_J(j,:) = phi(X_k(1), X_k(2), t_switch)';
