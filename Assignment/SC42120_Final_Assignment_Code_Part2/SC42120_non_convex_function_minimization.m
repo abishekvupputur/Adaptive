@@ -20,7 +20,7 @@ clc; clear;
 
 % The function subject to minimization
 c = 100;
-psi = @(x) c*[2.1333*x^4 + 0.9333*x^3 - 2.1333*x^2 - 0.9333*x + 1]; % A non-convex psi to optimze
+psi = @(x) c*[2.1333*x^4 + 0.9333*x^3 - 2.1333*x^2 - 0.9333*x + 1]; % A non-convex psi to optimize
 
 dt = 1e-4; %Sampling time of the discrete system
 tf =  1; %The simulation will be performed from t=0 to this value
