@@ -24,17 +24,17 @@ S = [10 0; 0 10]; % matrix to determine the phi final cost
 % The function subject to minimization
 % psi is the final cost at t_f
 c = 10;
-psi = %TODO
+psi = @(x) x'*S*x;
 
 %% Systems Dynamics in continuous 
 
 % System 1 dynamics
-f_1 = %TODO
-g_1 = %TODO
+f_1 = @(x_1, x_2) [x_2; x_1^2-x_2^2];
+g_1 = [0; 1];
 
 % System 2 dynamics
-f_2 = %TODO
-g_2 = %TODO
+f_2 = @(x_1, x_2) [x_2; -x_2];
+g_2 = [0; 0.5];
 
 % Quadratic Lyapunov Design 
 Q = eye(2);
@@ -48,7 +48,7 @@ s = 2; % number of systems
 
 dt = 2e-3;  %4e-4; %Sampling time of the discrete system
 tf = 3;     %The simulation will be performed from t=0 to this value
-t_bar = 1;  %Eq, (18) of the paper, constant switching time in the new time indipendent variable 
+t_bar = 1;  %Eq, (18) of the paper, constant switching time in the new time independent variable 
 t_bar_f = tf;
 K = s-1;
 N = (K+1)/dt;   %Number of steps during each simulation 
@@ -104,18 +104,18 @@ FinalV = zeros(length(sigma(X_k(1), X_k(2), t_switch)),N); %Scalar control, for 
 
 %% NN Training
 
-MaxEpochNo= 10; % Unlike Algorithm 1 of the paper, where "beta" was defined for evaluating the convergence of "Step 6", we're setting a fixed number of iterations for that successive approximation
+MaxEpochNo = 10; % Unlike Algorithm 1 of the paper, where "beta" was defined for evaluating the convergence of "Step 6", we're setting a fixed number of iterations for that successive approximation
 NoOfEquations = 500; % Number of sample "x" selected for training using least squares, in the referenced paper this value is called "n"
 StateSelectionWidth = 1.25; % the states will be selected from interval (-StateSelectionWidth, StateSelectionWidth)
 
-Q1_bar = %TODO % Discretized Q1
-Q2_bar = %TODO % Discretized Q2
-R1_bar = %TODO % Discretized R1
-R2_bar = %TODO % Discretized R2
-f_1_bar = %TODO % Discretized f_1
-f_2_bar = %TODO % Discretized f_2
-g_1_bar = %TODO % Discretized g_1
-g_2_bar = %TODO % Discretized g_2
+Q1_bar = dt*Q(1,1); % Discretized Q1
+Q2_bar = dt*Q(2,2); % Discretized Q2
+R1_bar = dt*R; % Discretized R1
+R2_bar = dt*R; % Discretized R2
+f_1_bar = @(x_1, x_2) [x_1;x_2] + dt*f_1(x_1, x_2); % Discretized f_1
+f_2_bar = @(x_1, x_2) [x_1;x_2] + dt*f_2(x_1, x_2); % Discretized f_2
+g_1_bar = dt*g_1; % Discretized g_1
+g_2_bar = dt*g_2; % Discretized g_2
 
 tic
 W = zeros(length(phi(X_k(1), X_k(2), t_switch)),N,MaxEpochNo);
@@ -146,7 +146,7 @@ for t = 0:N-1 % time goes from 0 to tf ----> N number of sample
                 X_k =  (rand(n,1)*2-1)* StateSelectionWidth; %Initial states selection
                 t_switch = (tf*rand(s-1,1));
                 
-                J_k_t = %TODO
+                J_k_t = psi(X_k);
                 
                 % J_k_t is the target. So, W_N'*phi(X_k) is supposed to approximate J_k_t. Let's store them in the following matrices for least squares
                 RHS_J(j,:) = J_k_t;
@@ -156,7 +156,7 @@ for t = 0:N-1 % time goes from 0 to tf ----> N number of sample
                 fprintf('det phi = 0\n');
                 break;
             end
-            FinalW(:,k) = %TODO
+            FinalW(:,k) = (LHS_J'*LHS_J)\LHS_J'*RHS_J;
             
         else % Step 2, k=N-1 to k=0
             % Step 3, i=1 and select a guess on V_0
@@ -170,11 +170,11 @@ for t = 0:N-1 % time goes from 0 to tf ----> N number of sample
                     temp_U_k = Vi_1(:,k,i)'*sigma(X_k(1), X_k(2), t_switch);
                     % Step 6
                     if k*dt < t_bar 
-                        X_k_plus_1 = %TODO
-                        U_k = %TODO
+                        X_k_plus_1 = f_1_bar(X_k(1),X_k(2))+g_1_bar*temp_U_k;
+                        U_k = -inv(R1_bar)*g_1_bar'*dphi_dx(X_k_plus_1(1), X_k_plus_1(2), t_switch)'*FinalW(:,k+1);
                     else
-                        X_k_plus_1 = %TODO
-                        U_k = %TODO
+                        X_k_plus_1 = f_2_bar(X_k(1),X_k(2))+g_2_bar*temp_U_k;
+                        U_k = -inv(R2_bar)*g_2_bar'*dphi_dx(X_k_plus_1(1), X_k_plus_1(2), t_switch)'*FinalW(:,k+1);
                     end
                     RHS_U(j,:) = U_k';
                     LHS_U(j,:) = sigma(X_k(1), X_k(2), t_switch)';
@@ -184,7 +184,7 @@ for t = 0:N-1 % time goes from 0 to tf ----> N number of sample
                     break;
                 end
                 % Step 7
-                Vi_1(:,k,i+1) = %TODO
+                Vi_1(:,k,i+1) = (LHS_U'*LHS_U)\LHS_U'*RHS_U;
                 
                 % Step 8
                 % Check to see if the weights of the actors in fixed point
@@ -205,13 +205,13 @@ for t = 0:N-1 % time goes from 0 to tf ----> N number of sample
                 t_switch = (tf*rand(s-1,1)); %Initial states selection
                 temp_U_k = FinalV(:,k)'*sigma(X_k(1), X_k(2), t_switch);
                 if k*dt < t_bar 
-                   X_k_plus_1 = %TODO
-                   J_k_plus_1 = %TODO
-                   J_k_t = %TODO
+                   X_k_plus_1 = f_1_bar(X_k(1),X_k(2))+g_1_bar*temp_U_k;
+                   J_k_plus_1 = FinalW(:,k+1)'*phi(X_k_plus_1(1), X_k_plus_1(2), t_switch);
+                   J_k_t = 1/2*Q1_bar+1/2*temp_U_k'*R1_bar*temp_U_k+J_k_plus_1;
                 else
-                   X_k_plus_1 = %TODO
-                   J_k_plus_1 = %TODO
-                   J_k_t = %TODO
+                   X_k_plus_1 = f_2_bar(X_k(1),X_k(2))+g_2_bar*temp_U_k;
+                   J_k_plus_1 = FinalW(:,k+1)'*phi(X_k_plus_1(1), X_k_plus_1(2), t_switch);
+                   J_k_t = 1/2*Q2_bar+1/2*temp_U_k'*R2_bar*temp_U_k+J_k_plus_1;
                 end
                 RHS_J(j,:) = J_k_t;
                 LHS_J(j,:) = phi(X_k(1), X_k(2), t_switch)';
@@ -220,7 +220,7 @@ for t = 0:N-1 % time goes from 0 to tf ----> N number of sample
                 fprintf('det phi = 0\n');
                 break;
             end
-            FinalW(:,k) = %TODO
+            FinalW(:,k) = (LHS_J'*LHS_J)\LHS_J'*RHS_J;
             if isnan(FinalW(:,k))
                 fprintf('Training W is diverging...\n');
                 diverged = 1;
@@ -236,7 +236,7 @@ toc
 %% plot cost function 
 
 x0 = [-1 0.5]';
-%x0 = [0 -1]';
+% x0 = [0 -1]';
 
 dt_switch = 0.001;
 
@@ -244,7 +244,7 @@ t_switch = 0:dt_switch:tf;
 J0 = zeros(1,length(t_switch));
 
 for j=1:length(t_switch)
-J0(1,j) = FinalW(:,1)'*phi(x0(1),x0(2),t_switch(1,j));
+    J0(1,j) = FinalW(:,1)'*phi(x0(1),x0(2),t_switch(1,j));
 end
 
 [x,t] = min(J0);
@@ -255,7 +255,7 @@ plot(t_switch, J0)
 xlabel('t_{switch}')
 ylabel('J0')
 
-[M,I]=min(J0(1,1:end));
+[M,I] = min(J0(1,1:end));
 t_1 = I*dt_switch;
 Xd_k = zeros(n,N);
 Ud_k = zeros(1,N);
@@ -269,11 +269,11 @@ for k = 1:N-1
     
     if k*dt < 1
     u_k = FinalV(:,k)'*sigma(Xd_k(1,k),Xd_k(2,k),t_1);
-    Ud_k(:,k)=u_k;
+    Ud_k(:,k) = u_k;
     Xd_k(:,k+1) = Xd_k(:,k) + dt*f_1(Xd_k(1,k),Xd_k(2,k)) + dt*g_1*u_k;
     else
     u_k = FinalV(:,k)'*sigma(Xd_k(1,k),Xd_k(2,k),t_1);
-    Ud_k(:,k)=u_k;
+    Ud_k(:,k) = u_k;
     Xd_k(:,k+1) = Xd_k(:,k) + dt*f_2(Xd_k(1,k),Xd_k(2,k)) + dt*g_2*u_k;
     end
     
@@ -286,13 +286,13 @@ ylabel('X')
 legend('x_1','x_2')
 title('states with time transformed')
 
-%transformation to indipendent time variable to real time 
-t=zeros(1,N);
+%transformation to independent time variable to real time 
+t = zeros(1,N);
 for k = 1:N
     if k*dt < 1
-        t(1,k)= t_1*k*dt;
+        t(1,k) = t_1*k*dt;
     else
-        t(1,k)=t_1 + (tf-t_1)*(k*dt-1);
+        t(1,k) = t_1 + (tf-t_1)*(k*dt-1);
     end
 end
 
