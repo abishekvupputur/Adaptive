@@ -159,7 +159,7 @@ for i=1:length(x)
 end
 [minvalue1, minidx1] = min(function_value);
 [minvalue2, minidx2] = min( cost_function_value);
-percentage_error = abs((x(minidx2)-x(minidx1)/x(minidx1)))*100;
+percentage_error = abs((x(minidx2)-x(minidx1))/x(minidx1))*100;
 % Plot
 figure('NumberTitle', 'off', 'Name', 'Non-linear function')
     hold on
