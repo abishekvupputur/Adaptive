@@ -3,7 +3,7 @@
 %%% 
 %%% Source code for paper: Global optimality of approximate dynamic programming and its use in non-convex function minimization
 %%% Authors: Ali Heydari and S.N. Balakrishnan
-%%% Journal: Applied Soft Computing, Vol. 24, 2014, pp. 291�303
+%%% Journal: Applied Soft Computing, Vol. 24, 2014, pp. 291?303
 %%% 
 %%% Copyright 2013 by Ali Heydari (heydari.ali@gmail.com)
 %%% Author Webpage: http://webpages.sdsmt.edu/~aheydari/
@@ -128,6 +128,7 @@ for t = 0:N-1
             end
             % Step 9   
             FinalW(:,k) = (LHS_J'*LHS_J)\LHS_J'*RHS_J;
+            %FinalW(:,k) = inv(LHS_J'*LHS_J)*LHS_J'*RHS_J;
         end
 
         if isnan(FinalW(:,k))
@@ -156,7 +157,9 @@ for i=1:length(x)
     function_value(i) = psi(x(i));
     cost_function_value(i) = FinalW(:,1)'*phi(x(i));
 end
-
+[minvalue1, minidx1] = min(function_value);
+[minvalue2, minidx2] = min( cost_function_value);
+percentage_error = abs((x(minidx2)-x(minidx1)/x(minidx1)))*100;
 % Plot
 figure('NumberTitle', 'off', 'Name', 'Non-linear function')
     hold on
@@ -171,5 +174,6 @@ figure('NumberTitle', 'off', 'Name', 'Cost function')
     plot(x,cost_function_value)
     title('Cost function approximation');
     xlabel('x');
-    ylabel('L_0(x)');
-    legend('L_0');
+    ylabel('J_0(x)');
+    legend('J_0');
+
